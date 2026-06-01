@@ -62,7 +62,7 @@
                     <p class="text-gray-500 text-sm mb-4 dark:text-gray-400">Procesador M2, 16GB RAM, 512GB SSD. Perfecta para programar.</p>
                     <div class="flex justify-between items-center">
                         <span class="text-2xl font-extrabold text-blue-600 dark:text-blue-500">$1,299</span>
-                        <button onclick="agregarAlCarrito()" class="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition dark:bg-gray-700 dark:hover:bg-gray-600 focus:ring-4 focus:ring-blue-300">Agregar</button>
+                        <button onclick="agregarAlCarrito(1)" class="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition dark:bg-gray-700 dark:hover:bg-gray-600 focus:ring-4 focus:ring-blue-300">Agregar</button>
                     </div>
                 </div>
             </div>
@@ -73,7 +73,7 @@
                     <p class="text-gray-500 text-sm mb-4 dark:text-gray-400">Aislamiento acústico total para sesiones de código sin interrupciones.</p>
                     <div class="flex justify-between items-center">
                         <span class="text-2xl font-extrabold text-blue-600 dark:text-blue-500">$249</span>
-                        <button onclick="agregarAlCarrito()" class="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition dark:bg-gray-700 dark:hover:bg-gray-600 focus:ring-4 focus:ring-blue-300">Agregar</button>
+                        <button onclick="agregarAlCarrito(2)" class="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition dark:bg-gray-700 dark:hover:bg-gray-600 focus:ring-4 focus:ring-blue-300">Agregar</button>
                     </div>
                 </div>
             </div>
@@ -84,7 +84,7 @@
                     <p class="text-gray-500 text-sm mb-4 dark:text-gray-400">Switches silenciosos y respuesta táctil ultra rápida.</p>
                     <div class="flex justify-between items-center">
                         <span class="text-2xl font-extrabold text-blue-600 dark:text-blue-500">$120</span>
-                        <button onclick="agregarAlCarrito()" class="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition dark:bg-gray-700 dark:hover:bg-gray-600 focus:ring-4 focus:ring-blue-300">Agregar</button>
+                        <button onclick="agregarAlCarrito(3)" class="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition dark:bg-gray-700 dark:hover:bg-gray-600 focus:ring-4 focus:ring-blue-300">Agregar</button>
                     </div>
                 </div>
             </div>
@@ -139,6 +139,10 @@
             <h3 class="text-2xl font-extrabold mb-2 dark:text-white">Resumen de Compra</h3>
             <p class="text-gray-600 dark:text-gray-300 mb-6">Artículos en el carrito: <span id="modal-cart-count" class="font-bold text-blue-600 dark:text-blue-400">0</span></p>
             
+            <div id="lista-carrito" class="mb-6 bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl border dark:border-gray-700">
+                <p class="text-gray-500 text-sm italic">El carrito está vacío.</p>
+            </div>
+            
             <div class="space-y-4 mb-8">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre completo</label>
@@ -171,21 +175,89 @@
     </footer>
 
     <script>
-        let contador = 0;
+        // 1. Base de datos de tus productos
+        const PRODUCTOS = [
+            { id: 1, nombre: 'Laptop Ultra Pro 15"', precio: 1299 },
+            { id: 2, nombre: 'Auriculares Noise Cancelling', precio: 249 },
+            { id: 3, nombre: 'Teclado Mecánico RGB', precio: 120 }
+        ];
+
+        // 2. Estado del carrito
+        let carrito = [];
         let toastTimeout; 
 
-        function agregarAlCarrito() {
-            contador++;
-            document.getElementById('cart-count').innerText = contador;
-            document.getElementById('modal-cart-count').innerText = contador;
-            
+        // 3. Función para agregar al carrito usando el ID del producto
+        function agregarAlCarrito(idProducto) {
+            const productoExistente = carrito.find(item => item.id === idProducto);
+
+            if (productoExistente) {
+                productoExistente.cantidad++;
+            } else {
+                const productoOriginal = PRODUCTOS.find(p => p.id === idProducto);
+                carrito.push({ ...productoOriginal, quantity: 1, cantidad: 1 });
+            }
+
+            actualizarInterfaz();
+            mostrarToast('¡Añadido al carrito con éxito!');
+        }
+
+        // 4. NUEVA FUNCIÓN: Para eliminar un producto por completo del carrito
+        function eliminarDelCarrito(idProducto) {
+            carrito = carrito.filter(item => item.id !== idProducto);
+            actualizarInterfaz();
+            mostrarToast('Producto eliminado del carrito.');
+        }
+
+        // 5. Actualiza los contadores y dibuja los productos en el modal
+        function actualizarInterfaz() {
+            const totalItems = carrito.reduce((sum, item) => sum + item.cantidad, 0);
+            const precioTotal = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+
+            document.getElementById('cart-count').innerText = totalItems;
+            document.getElementById('modal-cart-count').innerText = totalItems;
+
             const btnCarrito = document.getElementById('cart-button');
             btnCarrito.classList.add('scale-110');
             setTimeout(() => btnCarrito.classList.remove('scale-110'), 200);
 
-            mostrarToast('¡Añadido al carrito con éxito!');
+            const contenedorLista = document.getElementById('lista-carrito');
+            if (!contenedorLista) return; 
+
+            if (carrito.length === 0) {
+                contenedorLista.innerHTML = `<p class="text-gray-500 text-sm italic text-center py-2">El carrito está vacío.</p>`;
+                return;
+            }
+
+            let htmlProductos = '<div class="max-h-40 overflow-y-auto space-y-3 pr-1">';
+            carrito.forEach(item => {
+                htmlProductos += `
+                    <div class="flex justify-between items-center text-sm border-b pb-2 dark:border-gray-700">
+                        <div class="truncate max-w-[150px]">
+                            <p class="font-semibold dark:text-white">${item.nombre}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">$${item.precio} x ${item.cantidad}</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <span class="font-bold text-gray-800 dark:text-gray-200">$${item.precio * item.cantidad}</span>
+                            <button onclick="eliminarDelCarrito(${item.id})" class="text-red-500 hover:text-red-700 dark:hover:text-red-400 focus:outline-none transition-colors" title="Eliminar del carrito">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            htmlProductos += '</div>';
+            
+            htmlProductos += `
+                <div class="flex justify-between items-center pt-3 border-t font-bold text-lg text-gray-900 dark:text-white dark:border-gray-600">
+                    <span>Total:</span>
+                    <span class="text-blue-600 dark:text-blue-400">$${precioTotal}</span>
+                </div>
+            `;
+
+            contenedorLista.innerHTML = htmlProductos;
         }
 
+        // --- Lógica de Modales ---
         const modal = document.getElementById('checkout-modal');
         const modalContent = document.getElementById('modal-content');
 
@@ -202,39 +274,37 @@
             modal.classList.add('opacity-0');
             modalContent.classList.remove('scale-100');
             modalContent.classList.add('scale-95');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-            }, 300);
+            setTimeout(() => { modal.classList.add('hidden'); }, 300);
         }
 
         modal.addEventListener('click', function(event) {
-            if (event.target === modal) {
-                cerrarModal();
-            }
+            if (event.target === modal) cerrarModal();
         });
 
         function simularPago() {
+            if (carrito.length === 0) {
+                mostrarToast('El carrito está vacío');
+                return;
+            }
             cerrarModal();
             setTimeout(() => {
                 mostrarToast('¡Demostración de pago exitosa!');
-                contador = 0;
-                document.getElementById('cart-count').innerText = contador;
-                document.getElementById('modal-cart-count').innerText = contador;
+                carrito = []; 
+                actualizarInterfaz();
             }, 500);
         }
 
         function mostrarToast(mensaje) {
             const toast = document.getElementById('toast-success');
             document.getElementById('toast-message').innerText = mensaje;
-            
             toast.classList.remove('translate-y-20', 'opacity-0');
             clearTimeout(toastTimeout);
-            
             toastTimeout = setTimeout(() => {
                 toast.classList.add('translate-y-20', 'opacity-0');
             }, 3000);
         }
 
+        // --- Control del Dark Mode ---
         const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
         const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
 
@@ -246,8 +316,7 @@
             themeToggleDarkIcon.classList.remove('hidden');
         }
 
-        const themeToggleBtn = document.getElementById('theme-toggle');
-        themeToggleBtn.addEventListener('click', function() {
+        document.getElementById('theme-toggle').addEventListener('click', function() {
             themeToggleDarkIcon.classList.toggle('hidden');
             themeToggleLightIcon.classList.toggle('hidden');
 
